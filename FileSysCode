@@ -1,0 +1,516 @@
+#include "iostream"
+#include "fstream"
+#include "windows.h"
+#include "string"
+#include "cstdio"
+#include "conio.h"
+
+using namespace std;
+
+//Глобальные переменные
+int num = 0;				//количкство созданных файлов
+bool flag = false;
+bool alot_files = false;
+bool delFlag = false;
+
+//Проверка на корректность ввода чисел
+void Check(char *str, int &number) // проверка на ввод нечисловых данных 
+{
+	int oshibka = 0;
+	do
+	{
+		if (oshibka != 0)
+		{
+			cout << "Ошибка ввода! Повторите ввод" << endl;
+			cout << "> ";
+		}
+		oshibka = 0;
+		cin >> str;
+		if (str[0] == ' ') // проверка на пробелы до ввода числа. 
+		{
+			for (int i = 0; i < strlen(str); i++) str[i] = str[i + 1];
+		}
+
+		if (str[0] == '-')
+		{
+			if (str[1] >= '0' && str[1] <= '9')
+			{
+				for (int i = 1; i < strlen(str); i++) 
+				{ 
+					if (str[i] < '0' || str[i] > '9') 
+						oshibka = 1; 
+				}
+			}
+			else oshibka = 1;
+		}
+		else
+			for (int i = 0; i < strlen(str); i++) 
+				if (str[i] < '0' || str[i] > '9') 
+					oshibka = 1;
+
+	} while (oshibka != 0);
+	number = atoi(str);
+}
+
+//Меню программы
+void Menu()
+{
+	printf("Меню\n");
+	printf("1. Создать файл\n");
+	printf("2. Редактировать файл\n");
+	printf("3. Удалить файл\n");
+	printf("4. Список файлов\n");
+	printf("5. Повторный вывод меню\n");
+	printf("0. Завершить программу\n");
+}
+
+//Поиск уже созданных файлов
+void Find(string *files)
+{
+	string tmp = "log.txt";
+	WIN32_FIND_DATA file;
+	HANDLE hFind = FindFirstFile("C:\\Users\\User\\Desktop\\ОС\\FileSystem\\FileSystem\\FileCatalog\\*.txt", &file);
+	if (hFind != INVALID_HANDLE_VALUE)
+	{
+		cout << "Доступные файлы:" << endl;
+		if (string(file.cFileName) != "log.txt")
+		{
+			cout << file.cFileName << endl;
+			files[num] = file.cFileName;
+			num++;
+		}
+		while (FindNextFile(hFind, &file))
+		{
+			if (string(file.cFileName) != tmp)
+			{
+				cout << file.cFileName << endl;
+				files[num] = file.cFileName;
+				num++;
+				flag = true;
+			}
+		}
+
+	}
+	else
+	{
+		cout << "Список доступных файлов пуст." << endl;
+		flag = false;
+	}
+	FindClose(hFind);
+	cout << endl;
+}
+
+//Создание файла
+string FileCreate(string *files)
+{
+	string name;
+	if (num != 20)
+	{
+		cout << "СОЗДАНИЕ ФАЙЛА" << endl << "Введите имя файла." << endl << "> ";
+		cin >> name;
+		while (name.length() > 10)
+		{
+			cout << "Название файла слишком длинное." << endl << "> ";
+			cin >> name;
+		}
+
+		name = name + ".txt";
+		ofstream file("C:\\Users\\User\\Desktop\\ОС\\FileSystem\\FileSystem\\FileCatalog\\" + name);
+		if (file.is_open())		//проверка учпешно ли создан файл
+		{
+			files[num] = name;	//заносим имя файла в "архив созданных файлов"
+			num = num + 1;
+		}
+
+		file.close();
+		cout << endl;
+	}
+	else
+	{
+		cout << "Невозможно создать более 10 файлов." << endl << endl;
+		alot_files = true;
+	}
+	flag = true;
+	return name;
+}
+
+//Редактирование файла
+string FileChange(string *files)
+{
+	int k = 0, otv;
+	char ch[10], buff[512];
+	string name, str;
+
+	ofstream log, file;
+	cout << "РЕДАКТИРОВАНИЕ ФАЙЛА" << endl;
+marck:
+	cout << "Введите имя файла, который нужно отредактировать." << endl << "> ";
+	cin >> name;
+	name = name + ".txt";
+
+	for (int i = 0; i < num; i++)
+		if (files[i] == name)
+			k++;
+
+	if (k == 0)
+	{
+		cout << "Неверное имя файла. Повторите ввод." << endl;
+		cout << endl;
+		goto marck;
+	}
+
+	cout << endl;
+
+	cout << "Выберите: \n1. Запись в конец файла \n2. Замена текста в файле \n> ";
+	Check(ch, otv);
+	while (otv < 0 || otv > 2)
+	{
+		cout << "Ошибка ввода. Повторите ввод." << endl;
+		Check(ch, otv);
+	}
+	cout << endl;
+
+	log.open("C:\\Users\\User\\Desktop\\ОС\\FileSystem\\FileSystem\\FileCatalog\\log\\log.txt", ios_base::app);
+
+	switch (otv)
+	{
+	case 1:
+	{
+		cin.clear();
+		cin.ignore(INT_MAX, '\n');
+		file.open("C:\\Users\\User\\Desktop\\ОС\\FileSystem\\FileSystem\\FileCatalog\\" + name, ios_base::app);
+		log << name << " - начато редактирование." << endl;
+		if (!file.is_open())
+		{
+			cout << "Ошибка редактирования файла" << endl;
+			log << "Ошибка редактирования файла" << name << endl;
+		}
+		else
+		{
+			cout << "Введите нужный текст.\nВвод заканчивается знаком ';'" << endl;
+			getline(cin, str, ';');
+			file << str << endl;
+			file.close();
+		}
+	}
+	break;
+	case 2:
+	{
+		cin.clear();
+		cin.ignore(INT_MAX, '\n');
+		file.open("C:\\Users\\User\\Desktop\\ОС\\FileSystem\\FileSystem\\FileCatalog\\" + name);
+		log << name << " - начато редактирование." << endl;
+		if (!file.is_open())
+		{
+			cout << "Ошибка редактирования файла" << endl;
+			log << "Ошибка редактирования файла" << name << endl;
+		}
+		else
+		{
+			cout << "Введите нужный текст.\nВвод заканчивается знаком ';'" << endl;
+			getline(cin, str, ';');
+			file << str << endl;
+			file.close();
+		}
+	}
+	break;
+	}
+	cout << endl;
+	return name;
+}
+
+//Удаление файла
+string FileDelete(string *files)
+{
+	int k = 0;
+	string name, name1;
+	delFlag = false;
+	cout << "УДАЛЕНИЕ ФАЙЛА" << endl;
+marck:
+	cout << "Введите имя файла, который нужно удалить." << endl << "> ";
+	cin >> name;
+	name = name + ".txt";
+
+	for (int i = 0; i < num; i++)
+		if (files[i] == name)
+			k++;
+
+	if (k == 0)
+	{
+		cout << "Неверное имя файла. Повторите ввод." << endl;
+		cout << endl;
+		goto marck;
+	}
+	else
+	{
+		name1 = "C:\\Users\\User\\Desktop\\ОС\\FileSystem\\FileSystem\\FileCatalog\\" + name;
+		if (remove(name1.c_str()) == 0)
+		{
+			cout << "Файл " << name << " удален." << endl;
+			delFlag = true;
+		}
+		else
+		{
+			cout << "Ошибка удаления." << endl;
+		}
+	}
+	cout << endl;
+	return name;
+}
+
+//Изменение списка файлов
+void FilesArrChange(string *files, string name)
+{
+	int del_index;
+	for (int j = 0; j < num; j++)
+	{
+		if (files[j] == name)
+		{
+			del_index = j + 1;
+			break;
+		}
+
+	}
+
+	for (int i2 = 0; i2 < num; i2++)
+	{
+		if (i2 == del_index)
+		{
+			for (int i3 = i2 - 1; i3 < num; i3++)
+			{
+				files[i3] = files[i3 + 1];
+			}
+		}
+	}
+	num = num - 1;
+}
+
+//Вывод списка файлов 
+void FileList(string *files)
+{
+	cout << "СПИСОК ФАЙЛОВ В СИСТЕМЕ" << endl;
+	if (flag == false)
+		cout << "Список пуст." << endl;
+	else
+	{
+		cout << "  №   Файл " << endl;
+		for (int i = 0; i < num; i++)
+			cout << "  " << i + 1 << "   " << files[i] << endl;
+	}
+	cout << endl;
+}
+
+//Контроль для созданных в обход программы файлов 
+void ControlNewFiles(string *files)
+{
+	int k, count = 0, i = 0;
+	char ch[10];
+	WIN32_FIND_DATA file;
+	HANDLE hf;
+	hf = FindFirstFile("C:\\Users\\User\\Desktop\\ОС\\FileSystem\\FileSystem\\FileCatalog\\*.txt", &file);
+
+	ofstream log;
+	log.open("C:\\Users\\User\\Desktop\\ОС\\FileSystem\\FileSystem\\FileCatalog\\log\\log.txt", ios_base::app);
+	string *mass = new string[num];
+	string *res = new string[2];
+	bool f = false;
+
+	if (hf != INVALID_HANDLE_VALUE)
+	{
+		while (FindNextFile(hf, &file))
+		{
+			for (int i = 0; i < num; i++)
+			{
+				if (string(file.cFileName) == files[i])
+				{
+					f = true;	//флаг - наличие файла в массиве, флаг ложь - нужно добавить файл в список
+				}
+			}
+
+			if (f == false)
+			{
+				cout << "Найден незарегистрированный файл " << file.cFileName << ".";
+				cout << "\nДествия: \n1. Добавить в список файлов\n2. Удалить данный файл" << endl << "> ";
+				Check(ch, k);
+				while (k < 0 || k > 2)
+				{
+					cout << "Ошибка ввода. Повторите ввод." << endl;
+					Check(ch, k);
+				}
+				//=========
+				switch (k)
+				{
+				case 1:
+				{
+					files[num] = file.cFileName;
+					num++;
+					cout << "Файл добавлен к списку." << endl << endl;
+					log << file.cFileName << "\tдобавлен новый файл\tdone" << endl;
+				}
+				break;
+
+				case 2:
+				{
+					string name1 = "C:\\Users\\User\\Desktop\\ОС\\FileSystem\\FileSystem\\FileCatalog\\" + string(file.cFileName);
+					if (remove(name1.c_str()) == 0)
+					{
+						cout << "Незарегистрированный файл удален." << endl << endl;
+						log << file.cFileName << "\tнеизвестный файл удален\tdone" << endl;
+					}
+				}
+				break;
+				}
+				//==========
+			}
+			f = false;
+		}
+	}
+
+}
+
+//Поиск имени удаленного файла
+bool Busy(int j, int num, string *m, string *n)
+{
+	for (int i = 0; i < num; ++i)
+		if (n[i] == m[j])
+			return false;
+	return true;
+}
+
+//Поиск имени удаленного файла
+void FindDeletedEl(string *m, string *n, string *p, int num)
+{
+	bool l = 1;
+	int j = 0, len = 0;
+	for (int i = 0; i < num; ++i)
+		if (Busy(i, num, m, n) && j <= num)
+		{
+			for (int k = 0; k < j; ++k)
+				if (p[k] == m[i])
+					l = 0;
+			if (l)
+			{
+				p[j++] = m[i];
+				++len;
+			}
+			flag = 1;
+		}
+
+
+	for (int i = 0; i < len; ++i)
+		cout << "Отсутствует файл " << p[i] << "." << endl;
+}
+
+//Контроль для удаленных файлов в обход программы
+void ControlDelFiles(string *files)
+{
+	int count = 0, i = 0;
+	char ch[10];
+	WIN32_FIND_DATA file;
+	HANDLE hFind = FindFirstFile("C:\\Users\\User\\Desktop\\ОС\\FileSystem\\FileSystem\\FileCatalog\\*.txt", &file);
+	ofstream log;
+	log.open("C:\\Users\\User\\Desktop\\ОС\\FileSystem\\FileSystem\\FileCatalog\\log\\log.txt", ios_base::app);
+
+	bool f1 = false;
+	string *mass = new string[num];
+	string *res = new string[2];
+
+	mass[i] = file.cFileName;
+	i++;
+	count++;
+	while (FindNextFile(hFind, &file))
+	{
+		mass[i] = file.cFileName;
+		i++;
+		count++;
+	}
+
+	if (num != count)
+	{
+		FindDeletedEl(files, mass, res, num);
+		string name = res[0];
+		log << name << " \tфайл потерян. Список файлов изменен.\tdone" << endl;
+		FilesArrChange(files, name);
+		FindClose(hFind);
+		delete[] mass;
+		delete[] res;
+	}
+}
+
+int main()
+{
+	int cmd;
+	char ch[10];
+	SetConsoleCP(1251);							//ofstream - запись в файл
+	SetConsoleOutputCP(1251);					//ifstream - чтение из файла
+
+	string tmp;
+	string *files = new string[20];				//массив из 10 строк для хранения имен файлов
+
+	Find(files);
+
+	Menu();
+	//создаем журнал для фиксирования действий
+	ofstream log("C:\\Users\\User\\Desktop\\ОС\\FileSystem\\FileSystem\\FileCatalog\\log\\log.txt", ios_base::app);
+	do
+	{
+
+		ControlNewFiles(files);
+		ControlDelFiles(files);
+
+		cout << "Введите команду (5-вызов меню): ";
+		Check(ch, cmd);
+		while (cmd < 0 || cmd > 7)
+		{
+			cout << "Ошибка ввода. Повторите ввод." << endl;
+			Check(ch, cmd);
+		}
+		cout << endl;
+		switch (cmd)
+		{
+		case 0: cout << "Программа завершена." << endl;
+			break;
+		case 1:
+		{
+			tmp = FileCreate(files);
+			if (alot_files == false)
+				log << tmp << " - файл успешно создан." << endl;
+			tmp = "";
+		}
+		break;
+		case 2:
+		{
+			tmp = FileChange(files);
+			log << tmp << " - файл отредактирован." << endl;
+			tmp = "";
+		}
+		break;
+		case 3:
+		{
+			tmp = FileDelete(files);
+			if (delFlag)
+			{
+				FilesArrChange(files, tmp);
+				log << tmp << " - файл успешно удален." << endl;
+				tmp = "";
+			}
+			else
+			{
+				log << tmp << " - ошибка удаления." << endl;
+				tmp = "";
+			}
+		}
+		break;
+		case 4: FileList(files);
+			break;
+		case 5: Menu();
+			break;
+		default:
+			cout << "Введена неверная команда. " << endl;
+		}
+	} while (cmd != 0);
+
+	delete[] files;
+	log.close();
+	return 0;
+}
